@@ -7,6 +7,7 @@ This project analyzes streaming data using Kafka and ksqlDB.
 - Name 1
 - Name 2
 - Name 3
+- Name 4
 
 ## Project Structure
 - data/ : dataset
