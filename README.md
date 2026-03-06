@@ -3,12 +3,6 @@
 ## Project Description
 This project analyzes streaming data using Kafka and ksqlDB.
 
-## Team Members
-- Name 1
-- Name 2
-- Name 3
-- Name 4
-
 ## Project Structure
 - data/ : dataset
 - src/ : source code
@@ -23,3 +17,4 @@ This project analyzes streaming data using Kafka and ksqlDB.
 - Python
 - Apache Kafka
 - ksqlDB
+- Flink
