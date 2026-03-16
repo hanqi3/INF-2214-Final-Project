@@ -4,13 +4,13 @@
 Hanqi Yao, Kaylee Li, Xiaoen Hu, Yihang Liang
 ## Project Overview
 
-## 1. Use Case
+### 1. Use Case
 
-## 2. Data Source
-## 3. System Design
-## 4. Time Semantics
-## 5. Late Data Handling
+### 2. Data Source
+### 3. System Design
+### 4. Time Semantics
+### 5. Late Data Handling
 
-## 6. Environment Setup
-## 7. How to Run
-## 8. Sample Output
+### 6. Environment Setup
+### 7. How to Run
+### 8. Sample Output
