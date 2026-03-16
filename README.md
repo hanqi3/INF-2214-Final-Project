@@ -1,12 +1,16 @@
-# INF-2214 Final Project
+# INF 2214 Final Project, Group 9
 
-## Project Description
+## Team Members
 
+## Project Overview
 
-## Project Structure
+## 1. Use Case
 
+## 2. Data Source
+## 3. System Design
+## 4. Time Semantics
+## 5. Late Data Handling
 
-## How to Run
-
-
-## Technologies
+## 6. Environment Setup
+## 7. How to Run
+## 8. Sample Output
