@@ -1,7 +1,7 @@
 # INF 2214 Final Project, Group 9
 
 ## Team Members
-
+Hanqi Yao, Kaylee Li, Xiaoen Hu, Yihang Liang
 ## Project Overview
 
 ## 1. Use Case
