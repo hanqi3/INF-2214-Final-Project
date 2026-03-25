@@ -8,7 +8,7 @@ Hanqi Yao, Kaylee Li, Xiaoen Hu, Yihang Liang
 
 ### 2. Data Source
 
-The dataset used in this project is **synthetically generated** using a custom Python script (`data_generator.py`) to simulate ride-sharing demand in an urban environment. The data is designed to mimic real-world ride request patterns over a **24-hour period**, enabling controlled experimentation with streaming analytics concepts in Apache Flink.
+The dataset used in this project is **synthetically generated** using a custom Python script (`CSVGenerator.py`) to simulate ride-sharing demand in an urban environment. The data is designed to mimic real-world ride request patterns over a **24-hour period**, enabling controlled experimentation with streaming analytics concepts in Apache Flink.
 
 #### Data Characteristics
 
@@ -23,8 +23,6 @@ The dataset used in this project is **synthetically generated** using a custom P
 
 The dataset is sorted by `ingest_time`, which simulates the order in which events arrive at the streaming system.
 
----
-
 #### Schema
 
 The dataset follows the schema below:
@@ -38,8 +36,6 @@ The dataset follows the schema below:
 | final_fare        | float     | Total fare after applying surge pricing |
 | surge_multiplier  | float     | Dynamic pricing factor reflecting demand and supply conditions |
 | weather           | string    | Weather condition at the time of request (clear, rain, snow) |
-
----
 
 #### Data Generation Logic
 
@@ -59,8 +55,6 @@ The synthetic data generator incorporates several mechanisms to approximate real
 
 - **Late and Out-of-Order Events**  
   Each event is assigned both an `event_time` and an `ingest_time`. Random delays are introduced so that some events arrive later than others, resulting in out-of-order data. This enables testing of **event-time processing and watermark strategies** in Flink.
-
----
 
 #### Purpose in Streaming Pipeline
 
