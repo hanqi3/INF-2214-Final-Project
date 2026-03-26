@@ -1,0 +1,10 @@
+# Dockerfile.dashboard -- Live rideshare revenue dashboard
+# --------------------------------------------------------
+# Consumes revenue insights from Kafka and serves the localhost UI.
+
+FROM python:3.11-slim-bookworm
+
+RUN pip install flask==3.0.3 kafka-python==2.0.2
+
+RUN mkdir -p /app/dashboard
+WORKDIR /app

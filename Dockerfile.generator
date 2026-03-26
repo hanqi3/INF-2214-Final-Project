@@ -1,0 +1,10 @@
+# Dockerfile.generator -- CSV replay publisher
+# --------------------------------------------
+# Publishes simulated rideshare events from the CSV file into Kafka.
+
+FROM python:3.11-slim-bookworm
+
+RUN pip install kafka-python==2.0.2
+
+RUN mkdir -p /app/src
+WORKDIR /app
