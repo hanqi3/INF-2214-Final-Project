@@ -208,18 +208,6 @@ docker compose down
 
 Sample output of the real-time dashboard for our PyFlink + Kafka streaming pipeline. It shows the peak total revenue by region in the latest sliding event-time window, recent revenue trends, ranked regional results, raw incoming ride events, and late events captured through Flink side output.
 
-## Implementation Notes
-- The replay generator shifts historical timestamps forward so each replay cycle looks current.
-- Kafka messages include both machine-readable millisecond timestamps and source timestamps from the CSV.
-- The dashboard keeps recent events and insights in memory for fast browser polling.
-- The current Compose file runs Kafka with KRaft mode, so ZooKeeper is not required.
-
-## Known Limitations
-- The default replay runs once unless looping is enabled.
-- Sliding-window lateness can be unintuitive because one event may belong to multiple overlapping windows.
-- If Docker Desktop is not running, `docker compose up` will fail before containers start.
-- Local CSV regeneration depends on having a Python interpreter installed outside Docker.
-
 ## Summary
 This project demonstrates an end-to-end streaming analytics workflow:
 - synthetic rideshare data generation
