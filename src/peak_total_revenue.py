@@ -7,16 +7,6 @@ computes total revenue per region over a sliding window.
 This job is submitted to a running Flink cluster via:
     flink run --python src/peak_total_revenue.py
 
-Pipeline topology:
-
-    KafkaSource("rideshare-events")
-        --> parse JSON
-        --> assign timestamps + watermarks (event time)
-        --> keyBy(zone_id)
-        --> SlidingEventTimeWindows(1 hour, slide 10 min)
-        --> compute total revenue / avg revenue / trip count
-        --> KafkaSink("revenue-insights")
-
 Concepts demonstrated
 ---------------------
 - KafkaSource: unbounded stream source for rideshare events
