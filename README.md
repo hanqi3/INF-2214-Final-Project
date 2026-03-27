@@ -15,7 +15,7 @@ The pipeline focuses on:
 - out-of-order and late-event handling
 - live inspection of raw events, aggregated insights, and side-output late events
 
-## Use Case
+## Use Case (Windowed Aggregations)
 Ride-sharing systems produce high-volume event streams whose arrival order may not match the time when rides actually happened. Demand changes across regions, peak commuting periods, and weather conditions. This project models that environment so we can study how stream-processing systems behave when data is delayed or arrives out of order.
 
 The main business question is: how can a platform continuously identify high-revenue regions and revenue trends while still handling delayed data correctly?
@@ -101,7 +101,7 @@ The project uses three Kafka topics:
 These topics are created automatically by the `init-kafka` service.
 
 ## Time Semantics
-This project uses event time rather than processing time.
+This project uses event time rather than processing time because the analysis depends on when each ride actually occurred, not simply when the record arrived in Kafka. In this dataset, events are replayed in ingest-time order and some records are intentionally delayed or out of order. If processing time were used, delayed rides could be assigned to the wrong revenue window, which would distort the regional revenue comparisons and peak-trend analysis. Event time is therefore more appropriate because Flink can assign each ride to the correct window based on its actual occurrence time, while watermarks handle bounded lateness in the stream.
 
 - `event_time` determines window assignment
 - `ingest_time` determines replay order into Kafka
@@ -109,7 +109,14 @@ This project uses event time rather than processing time.
 
 In [src/data_generator.py](src/data_generator.py), both timestamps are converted to Unix milliseconds before publishing to Kafka. In [src/peak_total_revenue.py](src/peak_total_revenue.py), Flink extracts `event_time` and uses it for watermarking and sliding windows.
 
+
+# Why Sliding Window Aggregation Fits This Use Case
+
+We chose the sliding event-time window because the rideshare platform needs continuously refreshed regional revenue insights rather than isolated non-overlapping summaries. A 1-hour window preserves enough historical context to reflect sustained demand patterns across commuting periods, while a 10-minute slide updates results frequently enough for near-real-time monitoring on the dashboard. A tumbling window would produce coarser, less responsive updates, while a session window is less appropriate because the goal is fixed-interval revenue comparison across regions rather than detecting inactivity-based sessions.
+
+
 ## Windowing and Late Data Handling
+
 The PyFlink job currently uses:
 - sliding event-time windows of `1 hour`
 - slide interval of `10 minutes`
@@ -123,6 +130,8 @@ This means:
 
 Important note:
 Because this is a sliding-window job, an event may be late for one overlapping window and still be valid for another overlapping window. The `late-rideshare-events` topic is intended for records that are beyond the accepted lateness threshold for the relevant window instance.
+
+This configuration reflects the trade-off between latency and completeness. We keep latency relatively low by emitting window results soon after the watermark passes the window boundary, rather than waiting a long time for all delayed events. At the same time, we preserve partial completeness by allowing 1 minute of bounded out-of-orderness and 30 additional seconds of allowed lateness. Events arriving beyond that threshold are no longer merged into the main aggregate and are instead routed to the late-event side output. 
 
 ## Dashboard
 The dashboard is served by Flask and consumes Kafka continuously in the background. It displays:
