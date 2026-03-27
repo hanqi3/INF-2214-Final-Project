@@ -31,6 +31,26 @@ def demand(hour):
     return 1.5
 
 
+def delay_seconds():
+    """
+    Return an ingest delay using the requested lateness distribution.
+
+    Buckets:
+    - 70.0%: 0 to 60 seconds
+    - 20.0%: 60 to 180 seconds
+    - 9.8%: 180 to 600 seconds
+    - 0.2%: greater than 3730 seconds
+    """
+    bucket = random.random()
+    if bucket < 0.70:
+        return random.randint(0, 60)
+    if bucket < 0.90:
+        return random.randint(60, 180)
+    if bucket < 0.998:
+        return random.randint(180, 600)
+    return random.randint(3731, 5400)
+
+
 def generate():
     rows = []
 
@@ -62,8 +82,9 @@ def generate():
 
         final_fare = round(base_fare * surge, 2)
 
-        # late data
-        ingest = t + timedelta(seconds=random.randint(0, 180))
+        # Replay rows in ingest-time order so the stream includes a controlled
+        # mix of on-time, moderately late, and definitely late records.
+        ingest = t + timedelta(seconds=delay_seconds())
 
         rows.append({
             "request_id": str(uuid.uuid4()),
