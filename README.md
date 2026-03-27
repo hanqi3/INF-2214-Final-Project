@@ -31,7 +31,7 @@ Flow:
 5. Flink writes aggregates to `revenue-insights`
 6. Flink writes too-late events to `late-rideshare-events`
 7. `dashboard/server.py` consumes Kafka topics and serves the dashboard at `http://localhost:8050`
-8. `sample output/Screenshot of the output.png` displays the sample outpu
+8. `sample output/Screenshot of the output.png` displays the sample output of the dashboard
 
 Main services in [docker-compose.yml](docker-compose.yml):
 - `kafka`: Apache Kafka 3.7 in KRaft mode
