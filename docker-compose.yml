@@ -16,7 +16,7 @@
 #   docker-compose up --build          start everything
 #   docker-compose down                stop and remove containers
 #   docker compose logs -f aggregator  follow aggregator logs
-#   http://localhost:8050              live fraud dashboard
+#   http://localhost:8050              live dashboard
 #   http://localhost:8081              Flink Web UI
 # =============================================================
 
