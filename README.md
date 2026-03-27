@@ -125,10 +125,13 @@ Because this is a sliding-window job, an event may be late for one overlapping w
 
 ## Dashboard
 The dashboard is served by Flask and consumes Kafka continuously in the background. It displays:
-- latest completed window rankings by region
-- peak revenue trend over time
-- recent raw rideshare events
-- recent late events emitted to the side-output topic
+- The top summary cards display the latest completed-window metrics, including Peak Total Revenue, Leading Region, Trip Count, Average Revenue, and the number of Completed Windows currently retained for display.
+- Peak Revenue Over Time shows how the highest regional revenue changes across recent completed sliding windows.
+- Latest Window Breakdown visualizes how total revenue is distributed across regions in the newest completed window.
+- Latest Region Windows lists the latest window results ranked by total revenue, including total revenue, average revenue, trip count, and average surge multiplier for each region.
+- Top Regions provides a compact leaderboard of the highest-performing regions in the latest completed window.
+- Recent Live Rides shows recently consumed raw rideshare events from the Kafka input topic, including region, fare, surge multiplier, weather, event time, and ingest time.
+- Late Events shows records routed to the Flink side-output topic after arriving beyond the watermark and allowed-lateness threshold.
 
 Access points:
 - Dashboard: `http://localhost:8050`
@@ -200,6 +203,10 @@ Stop everything:
 ```powershell
 docker compose down
 ```
+## Sample Output
+![Sample Output](sample%20output/Screenshot%20of%20the%20output.png)
+
+Sample output of the real-time dashboard for our PyFlink + Kafka streaming pipeline. It shows the peak total revenue by region in the latest sliding event-time window, recent revenue trends, ranked regional results, raw incoming ride events, and late events captured through Flink side output.
 
 ## Implementation Notes
 - The replay generator shifts historical timestamps forward so each replay cycle looks current.
