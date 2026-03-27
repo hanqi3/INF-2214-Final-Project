@@ -1,82 +1,224 @@
 # INF 2214 Final Project, Group 9
 
 ## Team Members
-Hanqi Yao, Kaylee Li, Xiaoen Hu, Yihang Liang
+- Hanqi Yao
+- Kaylee Li
+- Xiaoen Hu
+- Yihang Liang
+
 ## Project Overview
+This project simulates a ride-sharing analytics pipeline built with Apache Kafka, PyFlink, and a live dashboard. Synthetic rideshare events are generated into a CSV file, replayed into Kafka in ingest-time order, processed by a PyFlink sliding-window job using event-time semantics, and visualized in a Flask dashboard.
 
-### 1. Use Case
-This project addresses the problem of **real-time demand monitoring** and **dynamic decision-making** in ride-sharing platforms (Uber). Ride requests are generated continuously and show considerable temporal and spatial diversity in urban transportation systems. Demand varies between geographic zones, such as city centers and transit hubs, fluctuates dramatically during peak commuting hours, and is further impacted by extrinsic variables like weather. However, because of *network latency* and dispersed data gathering procedures, data produced by such systems frequently experiences **delays** and comes **out of order**. These features make it difficult to use conventional **batch-processing** techniques to accurately capture system state.
+The pipeline focuses on:
+- real-time revenue monitoring by region
+- event-time windowed analytics
+- out-of-order and late-event handling
+- live inspection of raw events, aggregated insights, and side-output late events
 
-The primary objective of this project is to enable **continuous detection and analysis** of ride demand patterns, pricing dynamics, and revenue trends under **streaming conditions**. The system is built to handle late and **out-of-order events** while processing high-velocity **data streams** by utilizing event-time semantics and window-based computations in *Apache Flink*. This makes it possible to precisely identify times of **peak demand**, areas with **high demand**, and how contextual elements like weather affect **surge pricing** methods.
+## Use Case
+Ride-sharing systems produce high-volume event streams whose arrival order may not match the time when rides actually happened. Demand changes across regions, peak commuting periods, and weather conditions. This project models that environment so we can study how stream-processing systems behave when data is delayed or arrives out of order.
 
-The outcomes of this analysis are of direct importance to multiple stakeholders. Ride-sharing businesses use these insights to improve **driver allocation**, optimize **surge pricing**, and boost **platform efficiency**. Drivers' earning potential is strongly impacted by timely information about pricing multipliers and high-demand areas. Improved service accessibility and more flexible pricing policies have an impact on customers. Additionally, urban planners and regulators looking to comprehend mobility patterns and transportation demand in metropolitan areas may find value in pooled information from such systems.
+The main business question is: how can a platform continuously identify high-revenue regions and revenue trends while still handling delayed data correctly?
 
-Processing this data as a **stream** is essential due to the time-sensitive nature of operational decisions in ride-sharing systems. For **demand forecasting**, **driver dispatching**, and **price modifications** to be effective, they must happen in **real-time**. For many use scenarios, batch processing techniques—which work on static information after delays—are inadequate because they are unable to capture situations that are changing quickly. Additionally, the use of streaming frameworks such as *Apache Flink* that provide event-time processing, watermarking, and stateful computations is required due to the existence of late and out-of-order events. These features guarantee that analytical outcomes are reliable and constant even in the face of actual data arrival patterns.
+## Architecture
+The current project runs as a multi-container pipeline with Docker Compose.
 
-### 2. Data Source
+Flow:
+1. `CSVGenerator.py` creates `rideshare_window_agg.csv`
+2. `src/data_generator.py` replays that CSV into Kafka topic `rideshare-events`
+3. `src/peak_total_revenue.py` consumes the stream with PyFlink
+4. Flink computes sliding-window revenue metrics per region
+5. Flink writes aggregates to `revenue-insights`
+6. Flink writes too-late events to `late-rideshare-events`
+7. `dashboard/server.py` consumes Kafka topics and serves the dashboard at `http://localhost:8050`
 
-The dataset used in this project is **synthetically generated** using a custom Python script (`CSVGenerator.py`) to simulate ride-sharing demand in an urban environment. The data is designed to mimic real-world ride request patterns over a **24-hour period**, enabling controlled experimentation with streaming analytics concepts in Apache Flink.
+Main services in [docker-compose.yml](docker-compose.yml):
+- `kafka`: Apache Kafka 3.7 in KRaft mode
+- `init-kafka`: creates required topics
+- `jobmanager`: Flink JobManager
+- `taskmanager`: Flink TaskManager
+- `aggregator`: submits the PyFlink job
+- `generator`: replays the CSV into Kafka
+- `dashboard`: Flask dashboard
 
-#### Data Characteristics
+## Repository Structure
+- [CSVGenerator.py](CSVGenerator.py): synthetic dataset generator
+- [rideshare_window_agg.csv](rideshare_window_agg.csv): generated rideshare dataset
+- [src/data_generator.py](src/data_generator.py): Kafka replay producer
+- [src/peak_total_revenue.py](src/peak_total_revenue.py): PyFlink streaming job
+- [dashboard/server.py](dashboard/server.py): dashboard backend and Kafka consumers
+- [dashboard/index.html](dashboard/index.html): live dashboard UI
+- [Dockerfile.flink](Dockerfile.flink): Flink + Python runtime
+- [Dockerfile.generator](Dockerfile.generator): Kafka replay producer image
+- [Dockerfile.dashboard](Dockerfile.dashboard): dashboard image
 
-- Simulates **thousands of ride request events** over one full day  
-- Captures **temporal demand patterns**, including:
-  - Morning peak hours (7–9 AM)
-  - Evening peak hours (5–7 PM)
-  - Reduced demand during late-night hours  
-- Models **geographic variation** across multiple predefined zones (e.g., Downtown, Airport, transit hubs, residential areas)  
-- Includes **dynamic pricing effects** through surge multipliers influenced by demand and weather conditions  
-- Introduces **late and out-of-order events** to reflect real-world streaming conditions  
+## Dataset
+The dataset is synthetically generated to represent ride requests over a 24-hour period.
 
-The dataset is sorted by `ingest_time`, which simulates the order in which events arrive at the streaming system.
+Each row contains:
 
-#### Schema
+| Field | Type | Description |
+|---|---|---|
+| `request_id` | string | unique ride identifier |
+| `zone_id` | string | region where the ride originated |
+| `event_time` | timestamp | when the ride request actually occurred |
+| `ingest_time` | timestamp | when the event arrives in the stream |
+| `final_fare` | float | fare after surge pricing |
+| `surge_multiplier` | float | pricing multiplier |
+| `weather` | string | simulated weather condition |
 
-The dataset follows the schema below:
+The generated CSV is sorted by `ingest_time`, because replay order should mimic arrival order in the streaming system.
 
-| Field              | Type       | Description |
-|-------------------|-----------|------------|
-| request_id        | string    | Unique identifier for each ride request |
-| zone_id           | string    | Geographic zone where the request originates |
-| event_time        | timestamp | Time when the ride request actually occurred |
-| ingest_time       | timestamp | Time when the event arrives in the system (may be delayed) |
-| final_fare        | float     | Total fare after applying surge pricing |
-| surge_multiplier  | float     | Dynamic pricing factor reflecting demand and supply conditions |
-| weather           | string    | Weather condition at the time of request (clear, rain, snow) |
+### Data Generation Logic
+The generator models:
+- morning peak demand from 7 AM to 9 AM
+- evening peak demand from 5 PM to 7 PM
+- lower late-night demand
+- regional variability across Toronto-style zones
+- weather-driven surge changes
+- delayed and out-of-order arrival patterns
 
-#### Data Generation Logic
+### Current Delay Distribution
+The current dataset generator uses weighted ingest delays so the stream includes both realistic out-of-order records and a small set of definitely late records:
 
-The synthetic data generator incorporates several mechanisms to approximate real-world ride-sharing behavior:
+- `70.0%` of events: delay `0-60` seconds
+- `20.0%` of events: delay `60-180` seconds
+- `9.8%` of events: delay `180-600` seconds
+- `0.2%` of events: delay greater than `3730` seconds
 
-- **Temporal Demand Modeling**  
-  Ride request frequency varies by time of day, with higher volumes during commuting hours and lower activity overnight.
+This distribution is intentionally aligned with the current Flink lateness settings so the dashboard can surface late-event behavior more clearly.
 
-- **Geographic Distribution**  
-  Demand is distributed unevenly across zones, with higher activity in central business districts, transit hubs, and high-traffic areas.
+## Kafka Topics
+The project uses three Kafka topics:
 
-- **Dynamic Pricing (Surge)**  
-  The `surge_multiplier` increases during periods of high demand, peak hours, and adverse weather conditions (e.g., rain or snow), resulting in higher `final_fare` values.
+| Topic | Purpose |
+|---|---|
+| `rideshare-events` | raw rideshare event stream |
+| `revenue-insights` | aggregated window outputs from Flink |
+| `late-rideshare-events` | side-output stream for events beyond allowed lateness |
 
-- **Weather Effects**  
-  Weather conditions influence both demand and pricing, allowing analysis of how external factors impact ride-sharing systems.
+These topics are created automatically by the `init-kafka` service.
 
-- **Late and Out-of-Order Events**  
-  Each event is assigned both an `event_time` and an `ingest_time`. Random delays are introduced so that some events arrive later than others, resulting in out-of-order data. This enables testing of **event-time processing and watermark strategies** in Flink.
+## Time Semantics
+This project uses event time rather than processing time.
 
-#### Purpose in Streaming Pipeline
+- `event_time` determines window assignment
+- `ingest_time` determines replay order into Kafka
+- replay order is preserved by sorting records by `ingest_time`
 
-This synthetic dataset is specifically designed to support **window-based aggregation tasks** in Apache Flink, including:
+In [src/data_generator.py](src/data_generator.py), both timestamps are converted to Unix milliseconds before publishing to Kafka. In [src/peak_total_revenue.py](src/peak_total_revenue.py), Flink extracts `event_time` and uses it for watermarking and sliding windows.
 
-- Identifying **peak demand hours**  
-- Detecting **high-demand zones**  
-- Computing **revenue trends using sliding windows**  
-- Analyzing the impact of **weather on surge pricing**  
+## Windowing and Late Data Handling
+The PyFlink job currently uses:
+- sliding event-time windows of `1 hour`
+- slide interval of `10 minutes`
+- bounded out-of-orderness watermark of `1 minute`
+- allowed lateness of `30 seconds`
 
-By incorporating realistic temporal patterns and delayed event arrivals, the dataset allows for meaningful evaluation of **stateful stream processing, time semantics, and late data handling**.
-### 3. System Design
-### 4. Time Semantics
-### 5. Late Data Handling
+This means:
+- mildly delayed events can still contribute to their windows
+- slightly later events can still revise an existing window during the allowed-lateness period
+- events arriving after the window end plus watermark plus allowed lateness are routed to `late-rideshare-events`
 
-### 6. Environment Setup
-### 7. How to Run
-### 8. Sample Output
+Important note:
+Because this is a sliding-window job, an event may be late for one overlapping window and still be valid for another overlapping window. The `late-rideshare-events` topic is intended for records that are beyond the accepted lateness threshold for the relevant window instance.
+
+## Dashboard
+The dashboard is served by Flask and consumes Kafka continuously in the background. It displays:
+- latest completed window rankings by region
+- peak revenue trend over time
+- recent raw rideshare events
+- recent late events emitted to the side-output topic
+
+Access points:
+- Dashboard: `http://localhost:8050`
+- Flink Web UI: `http://localhost:8081`
+
+## Environment Setup
+Recommended setup: Docker Desktop with Linux containers enabled.
+
+You do not need to install Kafka or Flink manually if you run the project through Docker Compose.
+
+Requirements:
+- Docker Desktop
+- Docker Compose
+
+## How to Run
+### 1. Generate or regenerate the dataset
+If you want a fresh CSV locally, run:
+
+```powershell
+python CSVGenerator.py
+```
+
+If your machine uses the Windows launcher instead:
+
+```powershell
+py CSVGenerator.py
+```
+
+### 2. Start the full pipeline
+From the project root, run:
+
+```powershell
+docker compose up --build
+```
+
+This will:
+- start Kafka
+- create topics
+- start the Flink cluster
+- submit the PyFlink aggregation job
+- replay the CSV into Kafka
+- start the dashboard
+
+### 3. Open the interfaces
+- Dashboard: `http://localhost:8050`
+- Flink UI: `http://localhost:8081`
+
+## Useful Commands
+Start only Kafka and topic creation:
+
+```powershell
+docker compose up kafka init-kafka
+```
+
+Follow Flink job logs:
+
+```powershell
+docker compose logs -f aggregator
+```
+
+Follow dashboard logs:
+
+```powershell
+docker compose logs -f dashboard
+```
+
+Stop everything:
+
+```powershell
+docker compose down
+```
+
+## Implementation Notes
+- The replay generator shifts historical timestamps forward so each replay cycle looks current.
+- Kafka messages include both machine-readable millisecond timestamps and source timestamps from the CSV.
+- The dashboard keeps recent events and insights in memory for fast browser polling.
+- The current Compose file runs Kafka with KRaft mode, so ZooKeeper is not required.
+
+## Known Limitations
+- The default replay runs once unless looping is enabled.
+- Sliding-window lateness can be unintuitive because one event may belong to multiple overlapping windows.
+- If Docker Desktop is not running, `docker compose up` will fail before containers start.
+- Local CSV regeneration depends on having a Python interpreter installed outside Docker.
+
+## Summary
+This project demonstrates an end-to-end streaming analytics workflow:
+- synthetic rideshare data generation
+- Kafka-based event replay
+- PyFlink event-time sliding-window aggregation
+- explicit late-event handling
+- live dashboard visualization
+
+It is designed both as a functional demo and as a learning exercise in Kafka, Flink, event-time processing, and late-data behavior.
