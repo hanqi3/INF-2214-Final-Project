@@ -46,7 +46,7 @@ Main services in [docker-compose.yml](docker-compose.yml):
 - [CSVGenerator.py](CSVGenerator.py): synthetic dataset generator
 - [rideshare_window_agg.csv](rideshare_window_agg.csv): generated rideshare dataset
 - [src/data_generator.py](src/data_generator.py): Kafka replay producer
-- [src/peak_total_revenue.py](src/peak_total_revenue.py): PyFlink streaming job
+- [src/peak_total_revenue.py](src/peak_total_revenue.py): PyFlink streaming application
 - [dashboard/server.py](dashboard/server.py): dashboard backend and Kafka consumers
 - [dashboard/index.html](dashboard/index.html): live dashboard UI
 - [Dockerfile.flink](Dockerfile.flink): Flink + Python runtime
