@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peak Total Revenue Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:         #0f1117;
+    --card:       #1a1d2e;
+    --card2:      #1e2235;
+    --red:        #ff4757;
+    --amber:      #ffa502;
+    --green:      #2ed573;
+    --blue:       #1e90ff;
+    --purple:     #a29bfe;
+    --text:       #eaf0fb;
+    --muted:      #8892a4;
+    --border:     #2a2f45;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  header {
+    background: linear-gradient(135deg, #12152a, #1a1d35);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 16px rgba(0,0,0,.4);
+  }
+
+  .header-left { display: flex; align-items: center; gap: 14px; }
+
+  .logo {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--red), #ff6b81);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  header h1 { font-size: 18px; font-weight: 600; }
+  header p  { font-size: 12px; color: var(--muted); }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(46,213,115,.12);
+    border: 1px solid rgba(46,213,115,.3);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--green);
+  }
+
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .4; transform: scale(.7); }
+  }
+
+  main { padding: 24px 28px; max-width: 1600px; margin: 0 auto; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: transform .15s;
+  }
+
+  .summary-card:hover { transform: translateY(-2px); }
+
+  .summary-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--muted);
+  }
+
+  .summary-value {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .summary-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .summary-card.red .summary-value { color: var(--red); }
+  .summary-card.amber .summary-value { color: var(--amber); }
+  .summary-card.green .summary-value { color: var(--green); }
+  .summary-card.blue .summary-value { color: var(--blue); }
+  .summary-card.purple .summary-value { color: var(--purple); }
+
+  .chart-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+  }
+
+  .chart-card h2 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+
+  .badge-blue { background: rgba(30,144,255,.15); color: var(--blue); }
+  .badge-amber { background: rgba(255,165,2,.15); color: var(--amber); }
+
+  .chart-wrap { position: relative; height: 220px; }
+
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .full-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .aux-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+  }
+
+  .table-wrap { overflow-y: auto; max-height: 340px; }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--muted);
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--card);
+  }
+
+  tbody tr { border-bottom: 1px solid rgba(42,47,69,.6); }
+  tbody tr:hover { background: rgba(255,255,255,.03); }
+  tbody td { padding: 9px 10px; font-size: 13px; }
+
+  .region-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    max-height: 340px;
+  }
+
+  .region-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--card2);
+    border-radius: 10px;
+  }
+
+  .region-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .region-name { font-weight: 600; font-size: 13px; }
+  .region-sub { font-size: 11px; color: var(--muted); }
+
+  .region-score {
+    margin-left: auto;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .score-high { color: var(--red); }
+  .score-medium { color: var(--amber); }
+  .score-low { color: var(--green); }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--muted);
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  .empty-icon { font-size: 32px; opacity: .4; }
+
+  .late-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+
+  .late-row {
+    border: 1px solid rgba(255, 165, 2, 0.18);
+    background: rgba(255, 165, 2, 0.06);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+
+  .late-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .late-region {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--amber);
+  }
+
+  .late-fare {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .late-sub {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  @media (max-width: 1100px) {
+    .chart-row,
+    .bottom-row,
+    .aux-row {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">&#128176;</div>
+    <div>
+      <h1>Peak Total Revenue Dashboard</h1>
+      <p>PyFlink &middot; Apache Kafka &middot; Sliding Window Stream Analytics</p>
+    </div>
+  </div>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    LIVE
+  </div>
+</header>
+
+<main>
+  <div class="summary-grid">
+    <div class="summary-card red">
+      <div class="summary-label">Peak Total Revenue</div>
+      <div class="summary-value" id="summary-total">$0.00</div>
+      <div class="summary-sub" id="summary-total-sub">latest completed window</div>
+    </div>
+    <div class="summary-card amber">
+      <div class="summary-label">Leading Region</div>
+      <div class="summary-value" id="summary-region">-</div>
+      <div class="summary-sub">highest total revenue in the latest window</div>
+    </div>
+    <div class="summary-card blue">
+      <div class="summary-label">Trip Count</div>
+      <div class="summary-value" id="summary-trips">0</div>
+      <div class="summary-sub">rides counted for the leading region</div>
+    </div>
+    <div class="summary-card purple">
+      <div class="summary-label">Average Revenue</div>
+      <div class="summary-value" id="summary-avg">$0.00</div>
+      <div class="summary-sub">per trip for the leading region</div>
+    </div>
+    <div class="summary-card green">
+      <div class="summary-label">Completed Windows</div>
+      <div class="summary-value" id="summary-windows">0</div>
+      <div class="summary-sub">recent sliding windows retained</div>
+    </div>
+  </div>
+
+  <div class="chart-row">
+    <div class="chart-card">
+      <h2>
+        Peak Revenue Over Time
+        <span class="badge badge-blue" id="time-label">latest windows</span>
+      </h2>
+      <div class="chart-wrap">
+        <canvas id="chart-time"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h2>
+        Latest Window Breakdown
+        <span class="badge badge-amber">by region</span>
+      </h2>
+      <div class="chart-wrap">
+        <canvas id="chart-regions"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <div class="chart-card">
+      <h2>
+        Latest Region Windows
+        <span class="badge badge-blue">ranked by total revenue</span>
+      </h2>
+      <div class="table-wrap" id="window-table-wrap">
+        <div class="empty">
+          <div class="empty-icon">&#128200;</div>
+          Waiting for window results from Flink...
+        </div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h2>
+        Top Regions
+        <span style="font-size:11px;color:var(--muted);font-weight:400">latest completed window</span>
+      </h2>
+      <div class="region-list" id="region-list">
+        <div class="empty">
+          <div class="empty-icon">&#127961;</div>
+          No regions ranked yet
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aux-row">
+    <div class="chart-card">
+      <h2>
+        Recent Live Rides
+        <span class="badge badge-amber">raw events from Kafka</span>
+      </h2>
+      <div class="table-wrap" id="event-table-wrap">
+        <div class="empty">
+          <div class="empty-icon">&#128663;</div>
+          Waiting for raw rideshare events...
+        </div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h2>
+        Late Events
+        <span class="badge badge-blue" id="late-count-label">side output</span>
+      </h2>
+      <div class="late-list" id="late-event-list">
+        <div class="empty">
+          <div class="empty-icon">&#9203;</div>
+          No late events captured yet
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const REGION_COLORS = ['#ff4757', '#ffa502', '#1e90ff', '#a29bfe', '#2ed573', '#70a1ff', '#ff6b81', '#7bed9f', '#ffaf40', '#5352ed'];
+
+function money(value) {
+  return `$${Number(value || 0).toFixed(2)}`;
+}
+
+const ctxTime = document.getElementById('chart-time').getContext('2d');
+const timeChart = new Chart(ctxTime, {
+  type: 'line',
+  data: { labels: [], datasets: [{
+    label: 'Peak total revenue',
+    data: [],
+    borderColor: '#ff4757',
+    backgroundColor: 'rgba(255,71,87,.12)',
+    borderWidth: 2,
+    pointRadius: 3,
+    pointBackgroundColor: '#ff4757',
+    fill: true,
+    tension: 0.3,
+  }]},
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1e2235',
+        titleColor: '#eaf0fb',
+        bodyColor: '#eaf0fb',
+        borderColor: '#2a2f45',
+        borderWidth: 1
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#8892a4', maxTicksLimit: 8, font: { size: 11 } },
+        grid: { color: 'rgba(42,47,69,.5)' }
+      },
+      y: {
+        beginAtZero: true,
+        ticks: { color: '#8892a4', font: { size: 11 } },
+        grid: { color: 'rgba(42,47,69,.5)' }
+      }
+    }
+  }
+});
+
+const ctxRegions = document.getElementById('chart-regions').getContext('2d');
+const regionChart = new Chart(ctxRegions, {
+  type: 'doughnut',
+  data: { labels: [], datasets: [{
+    data: [],
+    backgroundColor: [],
+    borderColor: '#0f1117',
+    borderWidth: 3
+  }]},
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    cutout: '62%',
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: { color: '#eaf0fb', padding: 14, font: { size: 12 } }
+      },
+      tooltip: {
+        backgroundColor: '#1e2235',
+        titleColor: '#eaf0fb',
+        bodyColor: '#eaf0fb',
+        borderColor: '#2a2f45',
+        borderWidth: 1
+      }
+    }
+  }
+});
+
+function renderTable(rows) {
+  const wrap = document.getElementById('window-table-wrap');
+  if (!rows.length) {
+    wrap.innerHTML = `<div class="empty"><div class="empty-icon">&#128200;</div>Waiting for window results from Flink...</div>`;
+    return;
+  }
+
+  const rendered = rows.map(row => `
+    <tr>
+      <td><strong>${row.zone_id}</strong></td>
+      <td>${money(row.total_revenue)}</td>
+      <td>${money(row.avg_revenue)}</td>
+      <td>${row.trip_count}</td>
+      <td style="color:var(--muted)">${Number(row.avg_surge_multiplier || 0).toFixed(2)}x</td>
+    </tr>
+  `).join('');
+
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Region</th><th>Total Revenue</th><th>Avg Revenue</th><th>Trips</th><th>Avg Surge</th>
+    </tr></thead>
+    <tbody>${rendered}</tbody>
+  </table>`;
+}
+
+function scoreClass(index) {
+  if (index === 0) return 'score-high';
+  if (index < 3) return 'score-medium';
+  return 'score-low';
+}
+
+function renderRegions(rows) {
+  const list = document.getElementById('region-list');
+  if (!rows.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">&#127961;</div>No regions ranked yet</div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map((row, index) => {
+    const initials = row.zone_id.slice(0, 3).toUpperCase();
+    return `<div class="region-row">
+      <div class="region-avatar">${initials}</div>
+      <div>
+        <div class="region-name">${row.zone_id}</div>
+        <div class="region-sub">${row.trip_count} trips &middot; avg ${money(row.avg_revenue)}</div>
+      </div>
+      <div class="region-score ${scoreClass(index)}">${money(row.total_revenue)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderEvents(rows) {
+  const wrap = document.getElementById('event-table-wrap');
+  if (!rows.length) {
+    wrap.innerHTML = `<div class="empty"><div class="empty-icon">&#128663;</div>Waiting for raw rideshare events...</div>`;
+    return;
+  }
+
+  const rendered = rows.map(row => `
+    <tr>
+      <td><strong>${row.zone_id}</strong></td>
+      <td>${money(row.final_fare)}</td>
+      <td>${Number(row.surge_multiplier || 0).toFixed(2)}x</td>
+      <td>${row.weather}</td>
+      <td>${row.event_time_label}</td>
+      <td>${row.ingest_time_label}</td>
+    </tr>
+  `).join('');
+
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Region</th><th>Fare</th><th>Surge</th><th>Weather</th><th>Event Time</th><th>Ingest Time</th>
+    </tr></thead>
+    <tbody>${rendered}</tbody>
+  </table>`;
+}
+
+function renderLateEvents(rows) {
+  const list = document.getElementById('late-event-list');
+  const label = document.getElementById('late-count-label');
+  label.textContent = rows.length ? `${rows.length} recent late events` : 'side output';
+
+  if (!rows.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">&#9203;</div>No late events captured yet</div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(row => `
+    <div class="late-row">
+      <div class="late-top">
+        <div class="late-region">${row.zone_id}</div>
+        <div class="late-fare">${money(row.final_fare)}</div>
+      </div>
+      <div class="late-sub">
+        event ${row.event_time_label} · ingest ${row.ingest_time_label} · ${row.late_reason}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function refresh() {
+  try {
+    const statsRes = await fetch('/api/stats');
+    const stats = await statsRes.json();
+    const peak = stats.current_peak || null;
+    const rankings = stats.latest_rankings || [];
+    const series = stats.peak_series || [];
+    const events = stats.recent_events || [];
+    const lateEvents = stats.recent_late_events || [];
+
+    document.getElementById('summary-total').textContent = peak ? money(peak.total_revenue) : '$0.00';
+    document.getElementById('summary-total-sub').textContent = stats.latest_window_label || 'latest completed window';
+    document.getElementById('summary-region').textContent = peak ? peak.zone_id : '-';
+    document.getElementById('summary-trips').textContent = peak ? peak.trip_count : 0;
+    document.getElementById('summary-avg').textContent = peak ? money(peak.avg_revenue) : '$0.00';
+    document.getElementById('summary-windows').textContent = stats.windows_tracked || 0;
+    document.getElementById('time-label').textContent = stats.updated_at
+      ? `${stats.latest_window_label} · ${stats.updated_at}`
+      : 'latest windows';
+
+    timeChart.data.labels = series.map(item => item.window_label);
+    timeChart.data.datasets[0].data = series.map(item => item.total_revenue);
+    timeChart.update();
+
+    regionChart.data.labels = rankings.map(item => item.zone_id);
+    regionChart.data.datasets[0].data = rankings.map(item => item.total_revenue);
+    regionChart.data.datasets[0].backgroundColor = rankings.map((_, index) => REGION_COLORS[index % REGION_COLORS.length]);
+    regionChart.update();
+
+    renderTable(rankings);
+    renderRegions(rankings.slice(0, 10));
+    renderEvents(events);
+    renderLateEvents(lateEvents);
+  } catch (e) {
+    console.warn('Dashboard refresh error:', e);
+  }
+}
+
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>
