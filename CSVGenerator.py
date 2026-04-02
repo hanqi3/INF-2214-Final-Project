@@ -64,7 +64,6 @@ def generate():
 
         # base demand
         base = random.randint(1, 5)
-        requests = int(base * multiplier)
 
         # fare
         base_fare = random.uniform(8, 25)
