@@ -189,41 +189,7 @@ This will:
 - Dashboard: `http://localhost:8050`
 - Flink UI: `http://localhost:8081`
 
-## Useful Commands
-Start only Kafka and topic creation:
-
-```powershell
-docker compose up kafka init-kafka
-```
-
-Follow Flink job logs:
-
-```powershell
-docker compose logs -f aggregator
-```
-
-Follow dashboard logs:
-
-```powershell
-docker compose logs -f dashboard
-```
-
-Stop everything:
-
-```powershell
-docker compose down
-```
 ## Sample Output
 ![Sample Output](sample%20output/Screenshot%20of%20the%20output.png)
 
 Sample output of the real-time dashboard for our PyFlink + Kafka streaming pipeline. It shows the peak total revenue by region in the latest sliding event-time window, recent revenue trends, ranked regional results, raw incoming ride events, and late events captured through Flink side output.
-
-## Summary
-This project demonstrates an end-to-end streaming analytics workflow:
-- synthetic rideshare data generation
-- Kafka-based event replay
-- PyFlink event-time sliding-window aggregation
-- explicit late-event handling
-- live dashboard visualization
-
-It is designed both as a functional demo and as a learning exercise in Kafka, Flink, event-time processing, and late-data behavior.
