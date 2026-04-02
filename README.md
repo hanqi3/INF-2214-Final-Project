@@ -110,7 +110,7 @@ This project uses event time rather than processing time because the analysis de
 In [src/data_generator.py](src/data_generator.py), both timestamps are converted to Unix milliseconds before publishing to Kafka. In [src/peak_total_revenue.py](src/peak_total_revenue.py), Flink extracts `event_time` and uses it for watermarking and sliding windows.
 
 
-# Why Sliding Window Aggregation Fits This Use Case
+## Why Sliding Window Aggregation Fits This Use Case
 
 We chose the sliding event-time window because the rideshare platform needs continuously refreshed regional revenue insights rather than isolated non-overlapping summaries. A 1-hour window preserves enough historical context to reflect sustained demand patterns across commuting periods, while a 10-minute slide updates results frequently enough for near-real-time monitoring on the dashboard. A tumbling window would produce coarser, less responsive updates, while a session window is less appropriate because the goal is fixed-interval revenue comparison across regions rather than detecting inactivity-based sessions.
 
